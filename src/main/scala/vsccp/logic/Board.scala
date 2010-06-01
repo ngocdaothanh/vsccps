@@ -385,7 +385,7 @@ class Board(pieces: Array[Piece]) {
         move(boards, piece, index, index - 9)
       } else {
         // Down
-        if (index > 8) move(boards, piece, index, index - 9)
+        if (index   > 8) move(boards, piece, index, index - 9)
         // Right
         if (index%9 < 8) move(boards, piece, index, index + 1)
         // Left
@@ -397,11 +397,11 @@ class Board(pieces: Array[Piece]) {
         move(boards, piece, index, index + 9)
       } else {
         // Up
-        if (index < 81) move(boards, piece, index, index + 9)
+        if (index   < 81) move(boards, piece, index, index + 9)
         // Right
-        if (index%9 < 8) move(boards, piece, index, index + 1)
+        if (index%9 <  8) move(boards, piece, index, index + 1)
         // Left
-        if (index%9 > 0) move(boards, piece, index, index - 1)
+        if (index%9 >  0) move(boards, piece, index, index - 1)
       }
     }
   }
@@ -487,9 +487,14 @@ class Board(pieces: Array[Piece]) {
     for (r <- 9 to 0 by -1) {
       for (c <- 0 to 8) {
         val p = pieces(r*9 + c)
-        ret += "%2s".format(p) + "\t"
+        // http://www.developer.com/open/article.php/631241/Linux-Console-Colors--Other-Tricks.htm
+        val format = if (RGENERAL <= p && p <= RSOLDIER)
+          "\033[31;1m%2s\033[0m"
+        else
+          "%2s"
+        ret += format.format(p) + "\t"
       }
-      ret += "\n\n"
+      ret += "\n\n\n\n"
     }
     ret
   }
