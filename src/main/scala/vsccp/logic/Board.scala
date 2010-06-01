@@ -8,17 +8,22 @@ import Piece._
  * http://en.wikipedia.org/wiki/Xiangqi
  *
  * Up
- * 8
+ * 81
  * | Black
+ * |
  * | Red
  * 0
  * Down
  */
-class Board(pieces: Array[Piece]) {
-  def this() = {
-    this(new Array[Piece](9*10))
-    reset
+class Board(moves: List[(Int, Int)]) {
+  val pieces = new Array[Piece](9*10)
+  reset
+  for ((fromIndex, toIndex) <- moves) {
+    pieces(toIndex)   = pieces(fromIndex)
+    pieces(fromIndex) = NONE
   }
+
+  def this() = this(List())
 
   def reset {
     for (i <- 0 to 9*10 - 1) pieces(i) = NONE
@@ -64,33 +69,43 @@ class Board(pieces: Array[Piece]) {
 
   //---------------------------------------------------------------------------
 
-  def alphaBeta(alpha: Int, beta: Int, depth: Int, traces: List[Board]): (Int, Board) = {
+  def move(m: (Int, Int)) = new Board(moves :+ m)
+
+  def humanMove(r1: Int, c1: Int, r2: Int, c2: Int) = move(r1*9 + c1, r2*9 + c2)
+
+  def computerMove(depth: Int): Board = {
+    val (_, m) = alphaBeta(-9999, 9999, depth, List())
+    move(m)
+  }
+
+  def alphaBeta(alpha: Int, beta: Int, depth: Int, traces: List[(Int, Int)]): (Int, (Int, Int)) = {
     if (depth == 0) {
       (toInt, traces.head)
     } else {
       var bestValue = -1000
-      var bestBoard: Board = null
+      var bestMove  = (-1, -1)
 
-      val boards = genMoves(depth%2 == 0)
-      for (b <- boards) {
+      val moves = genMoves(depth%2 == 0)
+      for (m <- moves) {
         if (bestValue < beta) {
           val a2 = if (bestValue > alpha) bestValue else alpha
-          val (v1, board) = b.alphaBeta(-beta, -a2, depth - 1, traces :+ b)
+          val b  = move(m)
+          val (v1, m2) = b.alphaBeta(-beta, -a2, depth - 1, traces :+ m)
           val v2 = -v1
           if (v2 > bestValue) {
             bestValue = v2
-            bestBoard = board
+            bestMove  = m2
           }
         }
       }
-      (bestValue, bestBoard)
+      (bestValue, bestMove)
     }
   }
 
   //---------------------------------------------------------------------------
 
-  def genMoves(black: Boolean): List[Board] = {
-    var ret = new ListBuffer[Board]
+  def genMoves(black: Boolean): List[(Int, Int)] = {
+    var ret = new ListBuffer[(Int, Int)]
     for (i <- 0 to 9*10 - 1) {
       val p = pieces(i)
       if (p != NONE) {
@@ -122,107 +137,107 @@ class Board(pieces: Array[Piece]) {
     ret.toList
   }
 
-  private def genGeneralMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genGeneralMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     if (isBlack(piece)) {
       // Up
-      if (index < 77) move(boards, piece, index, index + 9)
+      if (index < 77) move(moves, piece, index, index + 9)
       // Down
-      if (index > 66) move(boards, piece, index, index - 9)
+      if (index > 66) move(moves, piece, index, index - 9)
       // Left
       if (index != 66 && index != 66 + 9 && index != 66 + 2*9)
-        move(boards, piece, index, index - 1)
+        move(moves, piece, index, index - 1)
       // Right
       if (index != 68 && index != 68 + 9 && index != 68 + 2*9)
-        move(boards, piece, index, index + 1)
+        move(moves, piece, index, index + 1)
     } else {
       // Up
-      if (index < 21) move(boards, piece, index, index + 9)
+      if (index < 21) move(moves, piece, index, index + 9)
       // Down
-      if (index > 5) move(boards, piece, index, index - 9)
+      if (index > 5) move(moves, piece, index, index - 9)
       // Left
       if (index != 3 && index != 3 + 9 && index != 3 + 2*9)
-        move(boards, piece, index, index - 1)
+        move(moves, piece, index, index - 1)
       // Right
       if (index != 5 && index != 5 + 9 && index != 5 + 2*9)
-        move(boards, piece, index, index + 1)
+        move(moves, piece, index, index + 1)
     }
   }
 
-  private def genGuardMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genGuardMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     if (isBlack(piece)) {
       // Up-right
-      if (index == 66 || index == 66 + 9 + 1) move(boards, piece, index, index +  9 + 1)
+      if (index == 66 || index == 66 + 9 + 1) move(moves, piece, index, index +  9 + 1)
       // Down-left
-      if (index == 76 || index == 76 + 9 + 1) move(boards, piece, index, index -  9 - 1)
+      if (index == 76 || index == 76 + 9 + 1) move(moves, piece, index, index -  9 - 1)
       // Up-left
-      if (index == 66 || index == 66 + 9 - 1) move(boards, piece, index, index +  9 - 1)
+      if (index == 66 || index == 66 + 9 - 1) move(moves, piece, index, index +  9 - 1)
       // Down-right
-      if (index == 76 || index == 76 + 9 - 1) move(boards, piece, index, index -  9 + 1)
+      if (index == 76 || index == 76 + 9 - 1) move(moves, piece, index, index -  9 + 1)
     } else {
       // Up-right
-      if (index ==  3 || index ==  3 + 9 + 1) move(boards, piece, index, index +  9 + 1)
+      if (index ==  3 || index ==  3 + 9 + 1) move(moves, piece, index, index +  9 + 1)
       // Down-left
-      if (index == 13 || index == 13 + 9 + 1) move(boards, piece, index, index -  9 - 1)
+      if (index == 13 || index == 13 + 9 + 1) move(moves, piece, index, index -  9 - 1)
       // Up-left
-      if (index ==  5 || index ==  5 + 9 - 1) move(boards, piece, index, index +  9 - 1)
+      if (index ==  5 || index ==  5 + 9 - 1) move(moves, piece, index, index +  9 - 1)
       // Down-right
-      if (index == 13 || index == 13 + 9 - 1) move(boards, piece, index, index -  9 + 1)
+      if (index == 13 || index == 13 + 9 - 1) move(moves, piece, index, index -  9 + 1)
     }
   }
 
-  private def genElephantMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genElephantMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     if (isBlack(piece)) {
       // Up-right
       if ((index == 47 || index == 51 || index == 63 || index == 67) && pieces(index + 9 + 1) == NONE)
-        move(boards, piece, index, index + 9*2 + 2)
+        move(moves, piece, index, index + 9*2 + 2)
       // Down-left
       if ((index == 67 || index == 71 || index == 83 || index == 87) && pieces(index - 9 - 1) == NONE)
-        move(boards, piece, index, index - 9*2 - 2)
+        move(moves, piece, index, index - 9*2 - 2)
       // Up-left
       if ((index == 47 || index == 51 || index == 67 || index == 71) && pieces(index + 9 + 1) == NONE)
-        move(boards, piece, index, index +  9*2 - 2)
+        move(moves, piece, index, index +  9*2 - 2)
       // Down-right
       if ((index == 63 || index == 67 || index == 83 || index == 87) && pieces(index - 9 - 1) == NONE)
-        move(boards, piece, index, index - 9*2 + 2)
+        move(moves, piece, index, index - 9*2 + 2)
     } else {
       // Up-right
       if ((index ==  2 || index ==  6 || index == 18 || index == 22) && pieces(index + 9 + 1) == NONE)
-        move(boards, piece, index, index + 9*2 + 2)
+        move(moves, piece, index, index + 9*2 + 2)
       // Down-left
       if ((index == 22 || index == 26 || index == 38 || index == 42) && pieces(index - 9 - 1) == NONE)
-        move(boards, piece, index, index - 9*2 - 2)
+        move(moves, piece, index, index - 9*2 - 2)
       // Up-left
       if ((index ==  2 || index ==  6 || index == 22 || index == 26) && pieces(index + 9 + 1) == NONE)
-        move(boards, piece, index, index + 9*2 - 2)
+        move(moves, piece, index, index + 9*2 - 2)
       // Down-right
       if ((index == 18 || index == 22 || index == 38 || index == 42) && pieces(index - 9 + 1) == NONE)
-        move(boards, piece, index, index - 9*2 + 2)
+        move(moves, piece, index, index - 9*2 + 2)
     }
   }
 
-  private def genHorseMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genHorseMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     val r = index/9
     val c = index%9
 
     // 1 o'clock
-    if (r < 8 && c < 8 && pieces(index + 9) == NONE) move(boards, piece, index, index + 9*2 + 1)
+    if (r < 8 && c < 8 && pieces(index + 9) == NONE) move(moves, piece, index, index + 9*2 + 1)
     // 2 o'clock
-    if (r < 9 && c < 7 && pieces(index + 1) == NONE) move(boards, piece, index, index + 9 + 2)
+    if (r < 9 && c < 7 && pieces(index + 1) == NONE) move(moves, piece, index, index + 9 + 2)
     // 4 o'clock
-    if (r > 0 && c < 7 && pieces(index + 1) == NONE) move(boards, piece, index, index - 9 + 2)
+    if (r > 0 && c < 7 && pieces(index + 1) == NONE) move(moves, piece, index, index - 9 + 2)
     // 5 o'clock
-    if (r > 1 && c < 8 && pieces(index - 9) == NONE) move(boards, piece, index, index - 9*2 + 1)
+    if (r > 1 && c < 8 && pieces(index - 9) == NONE) move(moves, piece, index, index - 9*2 + 1)
     // 7 o'clock
-    if (r > 0 && c > 0 && pieces(index - 9) == NONE) move(boards, piece, index, index - 9*2 - 1)
+    if (r > 0 && c > 0 && pieces(index - 9) == NONE) move(moves, piece, index, index - 9*2 - 1)
     // 8 o'clock
-    if (r > 1 && c > 1 && pieces(index - 1) == NONE) move(boards, piece, index, index - 9 - 2)
+    if (r > 1 && c > 1 && pieces(index - 1) == NONE) move(moves, piece, index, index - 9 - 2)
     // 10 o'clock
-    if (r < 9 && c > 1 && pieces(index - 1) == NONE) move(boards, piece, index, index + 9 - 2)
+    if (r < 9 && c > 1 && pieces(index - 1) == NONE) move(moves, piece, index, index + 9 - 2)
     // 11 o'clock
-    if (r < 8 && c > 0 && pieces(index + 9) == NONE) move(boards, piece, index, index + 9*2 - 1)
+    if (r < 8 && c > 0 && pieces(index + 9) == NONE) move(moves, piece, index, index + 9*2 - 1)
   }
 
-  private def genChariotMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genChariotMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     var p: Piece = null
 
     // Up
@@ -231,9 +246,9 @@ class Board(pieces: Array[Piece]) {
     while (!done && i < 9*10 - 1) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else if (!isSameSide(piece, p)) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
         done = true
       } else done = true
       i += 9
@@ -245,9 +260,9 @@ class Board(pieces: Array[Piece]) {
     while (!done && i >= 0) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else if (!isSameSide(piece, p)) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
         done = true
       } else done = true
       i -= 9
@@ -260,9 +275,9 @@ class Board(pieces: Array[Piece]) {
     while (!done && i <= max) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else if (!isSameSide(piece, p)) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
         done = true
       } else done = true
       i += 1
@@ -275,16 +290,16 @@ class Board(pieces: Array[Piece]) {
     while (!done && i >= min) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else if (!isSameSide(piece, p)) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
         done = true
       } else done = true
       i -= 1
     }
   }
 
-  private def genCannonMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genCannonMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     var p: Piece = null
 
     // Up
@@ -293,7 +308,7 @@ class Board(pieces: Array[Piece]) {
     while (!done && i < 9*10 - 1) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else done = true
       i += 9
     }
@@ -302,7 +317,7 @@ class Board(pieces: Array[Piece]) {
       p = pieces(i)
       if (p != NONE) {
         if (!isSameSide(piece, p)) {
-          move(boards, piece, index, i)
+          move(moves, piece, index, i)
         }
         done = true
       }
@@ -315,7 +330,7 @@ class Board(pieces: Array[Piece]) {
     while (!done && i >= 0) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else done = true
       i -= 9
     }
@@ -324,7 +339,7 @@ class Board(pieces: Array[Piece]) {
       p = pieces(i)
       if (p != NONE) {
         if (!isSameSide(piece, p)) {
-          move(boards, piece, index, i)
+          move(moves, piece, index, i)
         }
         done = true
       }
@@ -338,7 +353,7 @@ class Board(pieces: Array[Piece]) {
     while (!done && i <= max) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else done = true
       i += 1
     }
@@ -347,7 +362,7 @@ class Board(pieces: Array[Piece]) {
       p = pieces(i)
       if (p != NONE) {
         if (!isSameSide(piece, p)) {
-          move(boards, piece, index, i)
+          move(moves, piece, index, i)
         }
         done = true
       }
@@ -361,7 +376,7 @@ class Board(pieces: Array[Piece]) {
     while (!done && i >= min) {
       p = pieces(i)
       if (p == NONE) {
-        move(boards, piece, index, i)
+        move(moves, piece, index, i)
       } else done = true
       i -= 1
     }
@@ -370,7 +385,7 @@ class Board(pieces: Array[Piece]) {
       p = pieces(i)
       if (p != NONE) {
         if (!isSameSide(piece, p)) {
-          move(boards, piece, index, i)
+          move(moves, piece, index, i)
         }
         done = true
       }
@@ -378,37 +393,37 @@ class Board(pieces: Array[Piece]) {
     }
   }
 
-  private def genSoldierMoves(boards: ListBuffer[Board], piece: Piece, index: Int) {
+  private def genSoldierMoves(moves: ListBuffer[(Int, Int)], piece: Piece, index: Int) {
     if (isBlack(piece)) {
       if (index > 44) {
         // Down
-        move(boards, piece, index, index - 9)
+        move(moves, piece, index, index - 9)
       } else {
         // Down
-        if (index   > 8) move(boards, piece, index, index - 9)
+        if (index   > 8) move(moves, piece, index, index - 9)
         // Right
-        if (index%9 < 8) move(boards, piece, index, index + 1)
+        if (index%9 < 8) move(moves, piece, index, index + 1)
         // Left
-        if (index%9 > 0) move(boards, piece, index, index - 1)
+        if (index%9 > 0) move(moves, piece, index, index - 1)
       }
     } else {
       if (index < 45) {
         // Up
-        move(boards, piece, index, index + 9)
+        move(moves, piece, index, index + 9)
       } else {
         // Up
-        if (index   < 81) move(boards, piece, index, index + 9)
+        if (index   < 81) move(moves, piece, index, index + 9)
         // Right
-        if (index%9 <  8) move(boards, piece, index, index + 1)
+        if (index%9 <  8) move(moves, piece, index, index + 1)
         // Left
-        if (index%9 >  0) move(boards, piece, index, index - 1)
+        if (index%9 >  0) move(moves, piece, index, index - 1)
       }
     }
   }
 
   //---------------------------------------------------------------------------
 
-  private def whereGenerals: (Int, Int, Int, Int) = {
+  private def whereGenerals: ((Int, Int), (Int, Int)) = {
     var rR, rC, bR, bC = -1
     for (c <- 3 to 5) {
       for (r <- 0 to 2) {
@@ -424,11 +439,11 @@ class Board(pieces: Array[Piece]) {
         }
       }
     }
-    (rR, rC, bR, bC)
+    ((rR, rC), (bR, bC))
   }
 
-  def isGeneralsFaced: Boolean = {
-    val (rRow, rCol, bRow, bCol) = whereGenerals
+  private def isGeneralsFaced: Boolean = {
+    val ((rRow, rCol), (bRow, bCol)) = whereGenerals
 
     if (rCol != bCol) {
       false
@@ -441,17 +456,15 @@ class Board(pieces: Array[Piece]) {
   }
 
   // The position at toIndex will be checked if the piece can be landed.
-  def move(boards: ListBuffer[Board], piece: Piece, fromIndex: Int, toIndex: Int) {
+  private def move(moves: ListBuffer[(Int, Int)], piece: Piece, fromIndex: Int, toIndex: Int) {
     if (toIndex >=0 && toIndex < 9*10) {
       val toPiece = pieces(toIndex)
       val landable = (toPiece == NONE || !isSameSide(piece, toPiece))
       if (landable) {
-        val a = pieces.clone
-        a(toIndex)   = piece
-        a(fromIndex) = NONE
-
-        val b = new Board(a)
-        if (!b.isGeneralsFaced) boards += b
+        val moves2 = moves.toList :+ (fromIndex, toIndex)
+        val b = new Board(moves2)
+        val m = (fromIndex, toIndex)
+        if (!b.isGeneralsFaced) moves += m
       }
     }
   }
@@ -483,15 +496,18 @@ class Board(pieces: Array[Piece]) {
   }
 
   override def toString = {
-    var ret = ""
+    var ret = " "
+    for (c <- 0 to 8) ret += c + "\t"
+    ret += "\n"
     for (r <- 9 to 0 by -1) {
+      ret += r
       for (c <- 0 to 8) {
         val p = pieces(r*9 + c)
         // http://www.developer.com/open/article.php/631241/Linux-Console-Colors--Other-Tricks.htm
         val format = if (RGENERAL <= p && p <= RSOLDIER)
-          "\033[31;1m%2s\033[0m"
+          "\033[31;1m%s\033[0m"
         else
-          "%2s"
+          "%s"
         ret += format.format(p) + "\t"
       }
       ret += "\n\n\n\n"
