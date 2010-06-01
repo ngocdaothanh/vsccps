@@ -487,10 +487,9 @@ class Board(pieces: Array[Piece]) {
     for (r <- 9 to 0 by -1) {
       for (c <- 0 to 8) {
         val p = pieces(r*9 + c)
-        if (p == NONE) ret += "\t" else ret += "%9s".format(p)  // 9: longest length (ELEPHANT)
-        ret += "\t"
+        ret += "%2s".format(p) + "\t"
       }
-      ret += "\n"
+      ret += "\n\n"
     }
     ret
   }
