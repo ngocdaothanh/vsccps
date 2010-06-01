@@ -71,26 +71,28 @@ class Board(moves: List[(Int, Int)]) {
 
   def move(m: (Int, Int)) = new Board(moves :+ m)
 
+  // Human is red
   def humanMove(r1: Int, c1: Int, r2: Int, c2: Int) = move(r1*9 + c1, r2*9 + c2)
 
+  // Computer is black
   def computerMove(depth: Int): Board = {
-    val (_, m) = alphaBeta(-9999, 9999, depth, List())
+    val (_, m) = alphaBeta(true, -9999, 9999, depth, List())
     move(m)
   }
 
-  def alphaBeta(alpha: Int, beta: Int, depth: Int, traces: List[(Int, Int)]): (Int, (Int, Int)) = {
+  def alphaBeta(black: Boolean, alpha: Int, beta: Int, depth: Int, traces: List[(Int, Int)]): (Int, (Int, Int)) = {
     if (depth == 0) {
       (toInt, traces.head)
     } else {
       var bestValue = -1000
       var bestMove  = (-1, -1)
 
-      val moves = genMoves(depth%2 == 0)
+      val moves = genMoves(black)
       for (m <- moves) {
         if (bestValue < beta) {
           val a2 = if (bestValue > alpha) bestValue else alpha
           val b  = move(m)
-          val (v1, m2) = b.alphaBeta(-beta, -a2, depth - 1, traces :+ m)
+          val (v1, m2) = b.alphaBeta(!black, -beta, -a2, depth - 1, traces :+ m)
           val v2 = -v1
           if (v2 > bestValue) {
             bestValue = v2
@@ -496,7 +498,7 @@ class Board(moves: List[(Int, Int)]) {
   }
 
   override def toString = {
-    var ret = " "
+    var ret = "\n "
     for (c <- 0 to 8) ret += c + "\t"
     ret += "\n"
     for (r <- 9 to 0 by -1) {
