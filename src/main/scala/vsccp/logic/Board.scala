@@ -82,9 +82,9 @@ class Board(moves: List[(Int, Int)]) {
 
   def alphaBeta(black: Boolean, alpha: Int, beta: Int, depth: Int, traces: List[(Int, Int)]): (Int, (Int, Int)) = {
     if (depth == 0) {
-      (toInt, traces.head)
+      (toInt(black), traces.head)
     } else {
-      var bestValue = -1000
+      var bestValue = -9999
       var bestMove  = (-1, -1)
 
       val moves = genMoves(black)
@@ -473,28 +473,27 @@ class Board(moves: List[(Int, Int)]) {
 
   //---------------------------------------------------------------------------
 
-  def toInt = {
-    var ret = 0
-    for (i <- 0 to 9*10 - 1) {
-      ret += (pieces(i) match {
+  def toInt(black: Boolean) = {
+    val forRed = pieces.foldLeft(0) { (s, e) =>
+      s + (e match {
         case NONE      => 0
         case BGENERAL  => -9999
-        case BGUARD    => -2
-        case BELEPHANT => -2
-        case BHORSE    => -5
-        case BCHARIOT  => -9
-        case BCANNON   => -5
-        case BSOLDIER  => -1
+        case BGUARD    => -20
+        case BELEPHANT => -20
+        case BHORSE    => -45
+        case BCHARIOT  => -90
+        case BCANNON   => -50
+        case BSOLDIER  => -10
         case RGENERAL  => 9999
-        case RGUARD    => 2
-        case RELEPHANT => 2
-        case RHORSE    => 5
-        case RCHARIOT  => 9
-        case RCANNON   => 5
-        case RSOLDIER  => 1
+        case RGUARD    => 20
+        case RELEPHANT => 20
+        case RHORSE    => 45
+        case RCHARIOT  => 90
+        case RCANNON   => 50
+        case RSOLDIER  => 10
       })
     }
-    ret
+    if (black) -forRed else forRed
   }
 
   override def toString = {
