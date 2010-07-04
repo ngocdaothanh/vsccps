@@ -1,4 +1,4 @@
-package vsccp.logic
+package vsccp
 
 import scala.collection.mutable.ListBuffer
 
@@ -6,27 +6,27 @@ import scala.collection.mutable.ListBuffer
  * http://en.wikipedia.org/wiki/Xiangqi
  *
  * Up
- * 81
- * | Black
- * |
- * | Red
  * 0
+ * | Red
+ * |
+ * | Black
+ * 81
  * Down
 
  * '　' = \u3000: zenkaku Japanese space character is used for blank position
  */
 class Board(moves: List[(Int, Int)]) {
   private val pieces = new StringBuilder(
-    "車馬象士將士象馬車" +
+    "俥傌相仕帥仕相傌俥" +
     "　　　　　　　　　" +  // <- \u3000
-    "　砲　　　　　砲　" +
-    "兵　兵　兵　兵　兵" +
-    "　　　　　　　　　" +
-    "　　　　　　　　　" +
-    "卒　卒　卒　卒　卒" +
     "　炮　　　　　炮　" +
+    "卒　卒　卒　卒　卒" +
     "　　　　　　　　　" +
-    "俥傌相仕帥仕相傌俥")
+    "　　　　　　　　　" +
+    "兵　兵　兵　兵　兵" +
+    "　砲　　　　　砲　" +
+    "　　　　　　　　　" +
+    "車馬象士將士象馬車")
 
   for ((fromIndex, toIndex) <- moves) {
     pieces.setCharAt(toIndex, pieces.charAt(fromIndex))
@@ -45,7 +45,6 @@ class Board(moves: List[(Int, Int)]) {
       }
       acc.append(colorize(pieces.charAt(i)))
     }
-    ret.append("\n")
     ret.toString
   }
 
@@ -54,16 +53,12 @@ class Board(moves: List[(Int, Int)]) {
     if (isRed(piece)) ("\033[31;1m" + piece + "\033[0m") else piece.toString
   }
 
-  // piece must not be '\u3000'
   def isBlack(piece: Char) = "將士象車砲馬卒".contains(piece.toString)
 
   def isRed(piece: Char) = "帥仕相俥炮傌卒".contains(piece.toString)
 
-  def isBlank(piece: Char) = (piece == '\u3000')
-
-  // piece1 and piece2 must not be '\u3000'
   def isSameSide(piece1: Char, piece2: Char) =
-    (isBlack(piece1) && isBlack(piece2)) || (!isBlack(piece1) && !isBlack(piece2))
+    (isBlack(piece1) && isBlack(piece2)) || (isRed(piece1) && isRed(piece2))
 
   //----------------------------------------------------------------------------
 
@@ -105,7 +100,7 @@ class Board(moves: List[(Int, Int)]) {
   //---------------------------------------------------------------------------
 
   def genMoves(black: Boolean): List[(Int, Int)] = {
-    var ret = new ListBuffer[(Int, Int)]
+    val ret = new ListBuffer[(Int, Int)]
     for (i <- 0 until 9*10) {
       val p = pieces(i)
       p match {
@@ -123,7 +118,7 @@ class Board(moves: List[(Int, Int)]) {
         case '傌' => genHorseMoves(ret, p, i)
         case '兵' => genSoldierMoves(ret, p, i)
         case '卒' => genSoldierMoves(ret, p, i)
-        case _    =>
+        case _ =>
       }
     }
     ret.toList
@@ -466,8 +461,6 @@ class Board(moves: List[(Int, Int)]) {
   def toInt(black: Boolean) = {
     val forRed = pieces.foldLeft(0) { (s, e) =>
       s + (e match {
-        case '\u3000'  => 0
-
         case '將' => -9999
         case '士' => -20
         case '象' => -20
@@ -483,6 +476,8 @@ class Board(moves: List[(Int, Int)]) {
         case '炮' => 50
         case '傌' => 45
         case '卒' => 10
+
+        case _ => 0
       })
     }
     if (black) -forRed else forRed
